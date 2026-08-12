@@ -1,0 +1,19 @@
+{
+  "name": "api-gateway",
+  "main": "index.js",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "ts-node-dev": "^2.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^4.2.0"
+  }
+}

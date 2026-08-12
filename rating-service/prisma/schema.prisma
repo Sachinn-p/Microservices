@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  cakeId    String
+  userId    String
+  score     Int
+  comment   String?
+  createdAt DateTime @default(now())
+}

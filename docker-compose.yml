@@ -1,0 +1,128 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: cake-delight-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cake-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: cake-delight-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cake-network
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: cake-delight-gateway
+    environment:
+      - CATALOG_URL=http://catalog-service:3001
+      - ORDER_URL=http://order-service:3002
+      - RATING_URL=http://rating-service:3003
+      - NOTIFICATION_URL=http://notification-service:3004
+    ports:
+      - "3000:3000"
+    depends_on:
+      - catalog-service
+      - order-service
+      - rating-service
+      - notification-service
+    networks:
+      - cake-network
+
+  catalog-service:
+    build:
+      context: ./catalog-service
+    container_name: cake-delight-catalog
+    environment:
+      - DATABASE_URL=mysql://root:password@mysql:3306/catalog_db
+      - PORT=3001
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - cake-network
+
+  order-service:
+    build:
+      context: ./order-service
+    container_name: cake-delight-order
+    environment:
+      - DATABASE_URL=mysql://root:password@mysql:3306/order_db
+      - RABBITMQ_URL=amqp://rabbitmq
+      - PORT=3002
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cake-network
+
+  rating-service:
+    build:
+      context: ./rating-service
+    container_name: cake-delight-rating
+    environment:
+      - DATABASE_URL=mysql://root:password@mysql:3306/rating_db
+      - RABBITMQ_URL=amqp://rabbitmq
+      - PORT=3003
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cake-network
+
+  notification-service:
+    build:
+      context: ./notification-service
+    container_name: cake-delight-notification
+    environment:
+      - DATABASE_URL=mysql://root:password@mysql:3306/notification_db
+      - RABBITMQ_URL=amqp://rabbitmq
+      - PORT=3004
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cake-network
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: cake-delight-frontend
+    ports:
+      - "8080:80"
+    networks:
+      - cake-network
+
+volumes:
+  mysql-data:
+
+networks:
+  cake-network:
+    driver: bridge
