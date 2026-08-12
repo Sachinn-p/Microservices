@@ -45,6 +45,24 @@ export const addToBasket = async (data) => {
   return await res.json();
 };
 
+export const updateBasketItemQuantity = async (userId, cakeId, quantity) => {
+  const res = await fetch(`${API_URL}/basket/${userId}/items/${cakeId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ quantity }),
+  });
+  if (!res.ok) throw new Error('Failed to update basket item quantity');
+  return await res.json();
+};
+
+export const removeBasketItem = async (userId, cakeId) => {
+  const res = await fetch(`${API_URL}/basket/${userId}/items/${cakeId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error('Failed to remove basket item');
+  return await res.json();
+};
+
 export const checkoutBasket = async (userId) => {
   const res = await fetch(`${API_URL}/checkout`, {
     method: 'POST',

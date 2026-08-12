@@ -25,12 +25,34 @@ const connectRabbitMQ = async () => {
           const event = JSON.parse(msg.content.toString());
           console.log('Received OrderCompleted event:', event);
           
+          // Fetch catalog to resolve names if items exist
+          let itemDetails = '';
+          if (event.items && event.items.length > 0) {
+            try {
+              const res = await fetch('http://catalog-service:3001/api/cakes');
+              if (res.ok) {
+                const result = await res.json();
+                const cakes = result.data;
+                const parts = event.items.map(item => {
+                  const cake = cakes.find(c => c.id === item.cakeId);
+                  const name = cake ? cake.name : `Cake #${item.cakeId}`;
+                  return `${name} (x${item.quantity})`;
+                });
+                itemDetails = ` containing ${parts.join(', ')}`;
+              }
+            } catch (err) {
+              console.error('Failed to fetch catalog', err);
+            }
+          }
+
+          const message = `Your order ${event.orderId}${itemDetails} totaling $${event.totalAmount.toFixed(2)} has been received.`;
+          
           // Save notification
           await prisma.notification.create({
             data: {
               orderId: event.orderId,
               userId: event.userId,
-              message: `Your order ${event.orderId} totaling $${event.totalAmount} has been received.`,
+              message,
               status: 'SENT'
             }
           });

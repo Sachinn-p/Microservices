@@ -63,6 +63,72 @@ app.get('/api/basket/:userId', async (req, res) => {
   }
 });
 
+app.put('/api/basket/:userId/items/:cakeId', async (req, res) => {
+  try {
+    const { userId, cakeId } = req.params;
+    const { quantity } = req.body;
+    
+    if (quantity === undefined || quantity < 0) {
+      return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Invalid quantity' } });
+    }
+
+    const basket = await prisma.basket.findUnique({ where: { userId } });
+    if (!basket) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Basket not found' } });
+    }
+
+    const existingItem = await prisma.basketItem.findFirst({
+      where: { basketId: basket.id, cakeId }
+    });
+
+    if (!existingItem) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Item not found in basket' } });
+    }
+
+    if (quantity === 0) {
+      await prisma.basketItem.delete({
+        where: { id: existingItem.id }
+      });
+      return res.json({ message: 'Item removed from basket' });
+    } else {
+      await prisma.basketItem.update({
+        where: { id: existingItem.id },
+        data: { quantity }
+      });
+      return res.json({ message: 'Item quantity updated' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: { code: 'SERVER_ERROR', message: 'Failed to update item quantity' } });
+  }
+});
+
+app.delete('/api/basket/:userId/items/:cakeId', async (req, res) => {
+  try {
+    const { userId, cakeId } = req.params;
+    
+    const basket = await prisma.basket.findUnique({ where: { userId } });
+    if (!basket) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Basket not found' } });
+    }
+
+    const existingItem = await prisma.basketItem.findFirst({
+      where: { basketId: basket.id, cakeId }
+    });
+
+    if (!existingItem) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Item not found in basket' } });
+    }
+
+    await prisma.basketItem.delete({
+      where: { id: existingItem.id }
+    });
+
+    res.json({ message: 'Item removed from basket' });
+  } catch (error) {
+    res.status(500).json({ error: { code: 'SERVER_ERROR', message: 'Failed to remove item' } });
+  }
+});
+
 app.post('/api/checkout', async (req, res) => {
   try {
     const { userId } = req.body;
@@ -95,7 +161,13 @@ app.post('/api/checkout', async (req, res) => {
     await prisma.basketItem.deleteMany({ where: { basketId: basket.id } });
     
     if (rabbitChannel) {
-      const event = { orderId: order.id, userId, totalAmount, status: order.status };
+      const event = { 
+        orderId: order.id, 
+        userId, 
+        totalAmount, 
+        status: order.status,
+        items: basket.items.map(item => ({ cakeId: item.cakeId, quantity: item.quantity }))
+      };
       rabbitChannel.publish('order_events', '', Buffer.from(JSON.stringify(event)));
       console.log('Published OrderCompleted event for order', order.id);
     }

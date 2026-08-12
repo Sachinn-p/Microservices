@@ -49,8 +49,12 @@ export function CakeDetail() {
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-border h-[400px] rounded-lg flex items-center justify-center w-full">
-          <span className="text-muted">No Image</span>
+        <div className="bg-border h-[400px] rounded-lg flex items-center justify-center w-full overflow-hidden shadow-sm">
+          {cake.imageUrl ? (
+            <img src={cake.imageUrl} alt={cake.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-muted">No Image</span>
+          )}
         </div>
 
         <div className="flex flex-col gap-4">

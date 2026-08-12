@@ -18,8 +18,12 @@ export function CakeCard({ cake }) {
 
   return (
     <div className="bg-surface rounded shadow hover:-translate-y-[2px] hover:shadow-lg transition-all duration-200 flex flex-col h-full overflow-hidden">
-      <div className="bg-border h-[200px] flex items-center justify-center">
-        <span className="text-muted">No Image</span>
+      <div className="bg-border h-[200px] flex items-center justify-center overflow-hidden">
+        {cake.imageUrl ? (
+          <img src={cake.imageUrl} alt={cake.name} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
+        ) : (
+          <span className="text-muted">No Image</span>
+        )}
       </div>
       <div className="p-4 flex flex-col flex-1">
         <div className="flex items-center justify-between mb-2">
