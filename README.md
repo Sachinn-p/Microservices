@@ -1,50 +1,55 @@
 # Cake Delight - Cloud Native Microservices Platform
 
-Cake Delight is a cloud-native microservices application built as part of a capstone project. It showcases a modern e-commerce backend built with Node.js, Express, JavaScript, Prisma ORM, MySQL, RabbitMQ, Docker, and Kubernetes.
+Cake Delight is a cloud-native microservices application built as part of a capstone project. It showcases a modern e-commerce platform built with React, Node.js, Express, Prisma ORM, MySQL, RabbitMQ, Docker, and Kubernetes. The platform features a beautiful, dynamic frontend rendering high-quality cake images.
 
 ## 🏗️ Architecture
 
-The application is decomposed into five distinct microservices, communicating via synchronous HTTP calls (through an API Gateway) and asynchronous event-driven messaging (via RabbitMQ).
+The application is decomposed into six distinct components, communicating via synchronous HTTP calls (through an API Gateway) and asynchronous event-driven messaging (via RabbitMQ).
 
-1. **API Gateway (Port 3000)**
-   - Acts as the single entry point for all client requests.
-   - Routes requests to the appropriate backend microservice using `http-proxy-middleware`.
+1. **Frontend UI**
+   - Built with React, Vite, and Tailwind CSS.
+   - Provides a responsive and interactive shopping experience, including a dynamic catalog and shopping basket.
+   - Integrates high-quality Unsplash images for product displays.
 
-2. **Catalog Service (Port 3001)**
-   - Manages the cake catalog, pricing, and availability.
+2. **API Gateway (Port 3000)**
+   - Acts as the single entry point for all frontend requests.
+   - Routes requests to the appropriate backend microservice using `express-http-proxy`.
+
+3. **Catalog Service (Port 3001)**
+   - Manages the cake catalog, pricing, and image assets.
    - **Database**: MySQL (`catalog_db`)
 
-3. **Order Service (Port 3002)**
-   - Manages user shopping baskets and handles the checkout process.
-   - Emits an `OrderCompleted` event to RabbitMQ upon successful checkout.
+4. **Order Service (Port 3002)**
+   - Manages user shopping baskets (add, update quantity, remove items) and handles the checkout process.
+   - Emits an `order_events` message to RabbitMQ upon successful checkout.
    - **Database**: MySQL (`order_db`)
 
-4. **Rating Service (Port 3003)**
+5. **Rating Service (Port 3003)**
    - Manages user reviews and ratings for cakes.
    - **Database**: MySQL (`rating_db`)
 
-5. **Notification Service (Port 3004)**
-   - Consumes `OrderCompleted` events from RabbitMQ.
-   - Responsible for generating user notifications (mocked as database records for this project).
+6. **Notification Service (Port 3004)**
+   - Consumes `order_events` messages from RabbitMQ.
+   - Enriches notification messages by querying the Catalog Service for human-readable cake names.
    - **Database**: MySQL (`notification_db`)
 
 ## 🛠️ Technology Stack
 
-- **Runtime**: [Node.js](https://nodejs.org/) (Fast JavaScript runtime and package manager)
-- **Framework**: Express.js with JavaScript
+- **Frontend**: React.js, Vite, Tailwind CSS
+- **Backend Runtime**: [Node.js](https://nodejs.org/)
+- **Framework**: Express.js
 - **Database**: MySQL (4 isolated logical databases)
-- **ORM**: Prisma (v7+)
+- **ORM**: Prisma (v5+)
 - **Message Broker**: RabbitMQ
 - **Containerization**: Docker & Docker Compose
-- **Orchestration**: Kubernetes
+- **Orchestration**: Kubernetes (`kind`, `minikube`)
 
 ---
 
-## 🚀 Getting Started Locally
+## 🚀 Getting Started Locally (Docker Compose)
 
 ### Prerequisites
 - [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
-- [Node.js](https://nodejs.org/) installed locally (optional, for running without containers)
 
 ### 0. Setup Environment Variables
 Before running the application, generate the required `.env` files for each microservice using the provided script:
@@ -53,16 +58,17 @@ Before running the application, generate the required `.env` files for each micr
 ```
 
 ### 1. Automated Setup (Recommended)
-You can build, start the infrastructure, run migrations, and launch all services with a single command:
+You can build, start the infrastructure, run database migrations, seed data, and launch all services with a single command:
 ```bash
 bash start.sh
 ```
+Access the application at **http://localhost:8080**
 
 ### 2. Manual Setup (Alternative)
 If you prefer to start things manually:
 Start the MySQL databases and RabbitMQ broker:
 ```bash
-docker-compose up -d mysql rabbitmq
+docker compose up -d mysql rabbitmq
 ```
 *Note: The MySQL container uses `init-dbs.sql` to automatically provision the 4 distinct databases on startup.*
 
@@ -72,22 +78,12 @@ for dir in catalog-service order-service rating-service notification-service; do
   (cd "$dir" && npx prisma db push)
 done
 ```
-
-### 3. Run the Microservices
-If you didn't use `bash start.sh`, you can build and run the services via Docker, or run them locally using Node.js.
-
-**Using Node.js (Local Development):**
+Seed the catalog data:
 ```bash
-# Open 5 separate terminal tabs, and run the following in each:
-cd api-gateway && node index.js
-cd catalog-service && node index.js
-cd order-service && node index.js
-cd rating-service && node index.js
-cd notification-service && node index.js
-
-# And in a 6th terminal tab for the frontend:
-cd frontend && npm run dev
+(cd catalog-service && node prisma/seed.js)
 ```
+
+Then run `docker compose up -d`.
 
 ---
 
@@ -95,20 +91,67 @@ cd frontend && npm run dev
 
 A complete deployment manifest is provided in `k8s/all-in-one.yaml`.
 
-1. Ensure your local cluster (Minikube or Docker Desktop) is running.
-2. Build the Docker images to your cluster's registry:
+### 1. Build and Load Images
+First, build the Docker images locally:
+```bash
+docker compose build
+```
+If you are using **`kind`** (Kubernetes in Docker), you must load these local images into the cluster nodes:
+```bash
+kind load docker-image cakedelight-frontend cakedelight-order-service cakedelight-catalog-service cakedelight-rating-service cakedelight-notification-service cakedelight-api-gateway
+```
+*(If using Minikube, run `eval $(minikube docker-env)` before building).*
+
+### 2. Apply the Manifests
+```bash
+kubectl apply -f k8s/all-in-one.yaml
+```
+
+### 3. Initialize Databases
+**Important**: The databases spin up empty in Kubernetes. You must manually sync the schemas and seed the initial data:
+```bash
+# Push schemas
+kubectl exec deployment/catalog-service -- npx prisma db push
+kubectl exec deployment/order-service -- npx prisma db push
+kubectl exec deployment/rating-service -- npx prisma db push
+kubectl exec deployment/notification-service -- npx prisma db push
+
+# Seed catalog data
+kubectl exec deployment/catalog-service -- node prisma/seed.js
+```
+
+### 4. Access the Application
+You can access the frontend via port-forwarding:
+```bash
+kubectl port-forward svc/frontend 8080:80
+```
+Open **http://localhost:8080** in your browser.
+
+---
+
+## 📊 Kubernetes Dashboard
+
+To visually manage your Kubernetes cluster, you can install the official Kubernetes Dashboard:
+
+1. **Deploy the Dashboard**:
    ```bash
-   eval $(minikube docker-env) # If using Minikube
-   for dir in catalog-service order-service rating-service notification-service api-gateway; do
-     docker build -t cakedelight/$dir:latest ./$dir
-   done
+   kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
    ```
-3. Apply the manifests:
+2. **Create an Admin User**:
    ```bash
-   kubectl apply -f k8s/all-in-one.yaml
+   kubectl create serviceaccount dashboard-admin -n kubernetes-dashboard
+   kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:dashboard-admin
    ```
-4. Access the API Gateway:
-   The API Gateway is exposed as a `NodePort` on port `30000`. You can access it at `http://localhost:30000`.
+3. **Get your Login Token**:
+   ```bash
+   kubectl create token dashboard-admin -n kubernetes-dashboard
+   ```
+4. **Start the Proxy**:
+   ```bash
+   kubectl proxy
+   ```
+5. **Access the Dashboard**:
+   Go to [http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/](http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/) and log in with your token.
 
 ---
 
@@ -122,10 +165,13 @@ All requests should be routed through the API Gateway at `http://localhost:3000/
 - `POST /api/cakes/seed` - *Deprecated, use `node prisma/seed.js` in `catalog-service` instead.*
 
 ### Orders & Baskets
+- `GET /api/basket/:userId` - Retrieve a user's current basket with cake details populated.
 - `POST /api/basket` - Add an item to the basket
   - *Payload*: `{"userId": "user-1", "cakeId": "1", "quantity": 1}`
-- `GET /api/basket/:userId` - Retrieve a user's current basket
-- `POST /api/checkout` - Checkout the user's basket and trigger the order event
+- `PUT /api/basket/:userId/items/:cakeId` - Update the quantity of a specific item.
+  - *Payload*: `{"quantity": 2}`
+- `DELETE /api/basket/:userId/items/:cakeId` - Remove an item from the basket.
+- `POST /api/checkout` - Checkout the user's basket and trigger the order event via RabbitMQ.
   - *Payload*: `{"userId": "user-1"}`
 
 ### Ratings
@@ -134,4 +180,4 @@ All requests should be routed through the API Gateway at `http://localhost:3000/
 - `GET /api/ratings/cake/:id` - Get average score and all ratings for a specific cake
 
 ### Notifications
-- `GET /api/notifications/:userId` - Get all generated notifications for a user (proving the RabbitMQ integration worked).
+- `GET /api/notifications/:userId` - Get all generated notifications for a user (proving the RabbitMQ integration worked, enriched with actual cake names).

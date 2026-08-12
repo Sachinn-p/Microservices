@@ -136,7 +136,7 @@ spec:
     spec:
       containers:
         - name: catalog-service
-          image: cake-catalog-service:latest
+          image: cakedelight-catalog-service:latest
           imagePullPolicy: Never
           env:
             - name: PORT
@@ -175,7 +175,7 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: cake-order-service:latest
+          image: cakedelight-order-service:latest
           imagePullPolicy: Never
           env:
             - name: PORT
@@ -216,7 +216,7 @@ spec:
     spec:
       containers:
         - name: rating-service
-          image: cake-rating-service:latest
+          image: cakedelight-rating-service:latest
           imagePullPolicy: Never
           env:
             - name: PORT
@@ -257,7 +257,7 @@ spec:
     spec:
       containers:
         - name: notification-service
-          image: cake-notification-service:latest
+          image: cakedelight-notification-service:latest
           imagePullPolicy: Never
           env:
             - name: PORT
@@ -298,7 +298,7 @@ spec:
     spec:
       containers:
         - name: api-gateway
-          image: cake-api-gateway:latest
+          image: cakedelight-api-gateway:latest
           imagePullPolicy: Never
           env:
             - name: PORT
@@ -344,7 +344,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: cake-frontend:latest
+          image: cakedelight-frontend:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 80
