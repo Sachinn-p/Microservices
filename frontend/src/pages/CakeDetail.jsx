@@ -61,7 +61,7 @@ export function CakeDetail() {
           <span className="text-sm uppercase text-primary font-semibold tracking-wider">{cake.category}</span>
           <h1 className="font-bold text-4xl leading-tight">{cake.name}</h1>
           <p className="text-muted text-lg">{cake.description}</p>
-          <div className="font-bold text-3xl mt-4">${cake.price.toFixed(2)}</div>
+          <div className="font-bold text-3xl mt-4">₹{cake.price.toFixed(2)}</div>
 
           <Button 
             variant="primary" 

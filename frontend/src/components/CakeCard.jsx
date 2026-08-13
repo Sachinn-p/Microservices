@@ -28,7 +28,7 @@ export function CakeCard({ cake }) {
       <div className="p-4 flex flex-col flex-1">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs uppercase text-primary font-semibold">{cake.category}</span>
-          <span className="font-bold">${cake.price.toFixed(2)}</span>
+          <span className="font-bold">₹{cake.price.toFixed(2)}</span>
         </div>
         <Link to={`/cake/${cake.id}`} className="hover:text-primary">
           <h3 className="font-bold text-main text-xl mb-2">{cake.name}</h3>

@@ -42,7 +42,11 @@ export function Basket() {
   if (isLoading) return <div className="bg-border rounded-md h-[400px] animate-pulse" />;
 
   const items = basket?.items || [];
-  const totalAmount = items.reduce((acc, item) => acc + (item.quantity * 20.0), 0);
+  const totalAmount = items.reduce((acc, item) => {
+    const cake = cakes?.find(c => c.id === item.cakeId);
+    const price = cake ? cake.price : 160.0;
+    return acc + (item.quantity * price);
+  }, 0);
 
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto w-full">
@@ -69,6 +73,7 @@ export function Basket() {
             {items.map((item) => {
               const cake = cakes?.find(c => c.id === item.cakeId);
               const cakeName = cake ? cake.name : `Cake #${item.cakeId}`;
+              const cakePrice = cake ? cake.price : 160.0;
               
               return (
               <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface border border-border rounded-xl shadow-sm gap-4 transition-all hover:border-gray-300 group">
@@ -84,7 +89,7 @@ export function Basket() {
                     <h3 className="font-bold text-main text-lg leading-tight">
                       {cakeName} <span className="text-muted text-sm font-normal">(ID: {item.cakeId})</span>
                     </h3>
-                    <p className="text-muted text-sm font-medium">${(20.0).toFixed(2)} each</p>
+                    <p className="text-muted text-sm font-medium">₹{(cakePrice).toFixed(2)} each</p>
                   </div>
                 </div>
                 
@@ -114,7 +119,7 @@ export function Basket() {
 
                   {/* Subtotal */}
                   <div className="font-bold text-main text-lg w-20 text-right shrink-0">
-                    ${(item.quantity * 20.0).toFixed(2)}
+                    ₹{(item.quantity * cakePrice).toFixed(2)}
                   </div>
 
                   {/* Delete Button */}
@@ -137,7 +142,7 @@ export function Basket() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between text-muted">
                 <span>Subtotal ({items.reduce((acc, item) => acc + item.quantity, 0)} items)</span>
-                <span className="font-medium text-main">${totalAmount.toFixed(2)}</span>
+                <span className="font-medium text-main">₹{totalAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-muted">
                 <span>Shipping</span>
@@ -148,7 +153,7 @@ export function Basket() {
             <div className="border-t border-border pt-4">
               <div className="flex justify-between font-bold text-xl mb-6">
                 <span>Total</span>
-                <span className="text-primary">${totalAmount.toFixed(2)}</span>
+                <span className="text-primary">₹{totalAmount.toFixed(2)}</span>
               </div>
               
               <Button 
