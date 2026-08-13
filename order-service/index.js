@@ -141,19 +141,35 @@ app.post('/api/checkout', async (req, res) => {
       return res.status(400).json({ error: { code: 'BAD_REQUEST', message: 'Basket is empty' } });
     }
     
-    // For simplicity in this capstone, assume all cakes cost $20.0 if we don't query catalog
-    const totalAmount = basket.items.reduce((total, item) => total + (item.quantity * 20.0), 0);
+    let cakes = [];
+    try {
+      const res = await fetch('http://catalog-service:3001/api/cakes');
+      if (res.ok) {
+        const result = await res.json();
+        cakes = result.data;
+      }
+    } catch (err) {
+      console.error('Failed to fetch catalog', err);
+    }
+    
+    let totalAmount = 0;
+    const itemsData = basket.items.map(item => {
+      const cake = cakes.find(c => c.id === item.cakeId);
+      const price = cake ? cake.price : 160.0;
+      totalAmount += item.quantity * price;
+      return {
+        cakeId: item.cakeId,
+        quantity: item.quantity,
+        price: price
+      };
+    });
     
     const order = await prisma.order.create({
       data: {
         userId,
         totalAmount,
         items: {
-          create: basket.items.map(item => ({
-            cakeId: item.cakeId,
-            quantity: item.quantity,
-            price: 20.0
-          }))
+          create: itemsData
         }
       }
     });
