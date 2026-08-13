@@ -45,7 +45,7 @@ const connectRabbitMQ = async () => {
             }
           }
 
-          const message = `Your order ${event.orderId}${itemDetails} totaling $${event.totalAmount.toFixed(2)} has been received.`;
+          const message = `Your order ${event.orderId}${itemDetails} totaling ₹${event.totalAmount.toFixed(2)} has been received.`;
           
           // Save notification
           await prisma.notification.create({
